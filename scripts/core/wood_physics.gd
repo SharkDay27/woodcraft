@@ -6,6 +6,17 @@ extends RefCounted
 const FSP := 28.0          ## 纖維飽和點：高於此含水率木材不會再收縮
 const KERF := 0.6          ## 日式鋸路寬 (mm)
 
+## 加工速度倍率（遊戲節奏設定，F2 切換）。1 = 真實速度。
+## 鋸、砂、磨刀完整套用；刨與鑿套用一半（避免一刨/一敲的量大到失去手感）。
+const WORK_SPEEDS := [1.0, 2.0, 3.0, 5.0]
+static var work_speed: float = 3.0
+
+static func speed_full() -> float:
+	return work_speed
+
+static func speed_half() -> float:
+	return 1.0 + (work_speed - 1.0) * 0.5
+
 # ---------------------------------------------------------------- 含水率
 ## 木料與工坊平衡含水率 (EMC) 趨近的時間常數（遊戲小時）。厚度平方律：厚兩倍，乾燥慢四倍。
 static func moisture_tau_hours(thick_mm: float) -> float:
@@ -27,7 +38,7 @@ static func saw_efficiency(saw_mode: int, kind: String) -> float:
 
 ## 每 1 px 拉鋸行程可前進的深度 (mm)。鋸路越長（料越寬）越慢。
 static func saw_rate(h: float, eff: float, sharp: float, kerf_len: float) -> float:
-	return 0.022 * eff * pow(sharp, 0.7) / (maxf(h, 0.2) * maxf(kerf_len, 10.0) / 50.0)
+	return 0.022 * eff * pow(sharp, 0.7) / (maxf(h, 0.2) * pow(maxf(kerf_len, 10.0) / 50.0, 0.7)) * speed_full()
 
 ## 鋸切偏移靈敏度：鋸路尚未建立 (前 2mm) 時，鋸子很容易跑偏，也容易修正。
 static func saw_steer(depth_done: float) -> float:
@@ -48,7 +59,7 @@ static func tearout_chance(tear: float, runout_deg: float, depth: float, sharp: 
 # ---------------------------------------------------------------- 鑿
 ## 一次木槌敲擊鑿入深度
 static func chisel_depth(force: float, sharp: float, h: float, chips: int) -> float:
-	var d := force * 3.2 * sharp / maxf(h, 0.2)
+	var d := force * 3.2 * sharp / maxf(h, 0.2) * speed_half()
 	if chips >= 3:
 		d *= 0.25   # 木屑塞住，鑿不下去
 	return d

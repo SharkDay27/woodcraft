@@ -20,7 +20,7 @@ func _target() -> WorkTool:
 	return list[target_index]
 
 func help() -> String:
-	return "按住左鍵上下推磨，保持左右穩定（角度一致）。R：換磨刀石號數。滾輪：換要研磨的刀具。"
+	return "按住左鍵上下推磨，保持左右穩定（角度一致）。R：換磨刀石號數。Ctrl+滾輪：換要研磨的刀具。"
 
 func status() -> String:
 	var t := _target()
@@ -46,7 +46,7 @@ func motion(rel: Vector2, _hit: Dictionary) -> void:
 		return
 	ws.sfx.stone(clampf(stroke / 40.0, 0.0, 1.0), STONES[mode]["grit"])
 	var stability := 1.0 - clampf(absf(rel.x) / (stroke + 1.0), 0.0, 0.85)
-	var gain := stroke * 0.00035 * stability
+	var gain := stroke * 0.00035 * stability * WoodPhysics.speed_full()
 	var cap: float = STONES[mode]["cap"]
 	if mode == 1 and t.sharpness < 0.78:
 		gain *= 0.15

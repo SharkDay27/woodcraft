@@ -25,7 +25,7 @@ func _init(p_ws) -> void:
 	sharpenable = true
 
 func help() -> String:
-	return "按住左鍵沿木料長度方向拖曳 = 一刨。滾輪：吃刀深度。R：切換鉋台長度。\n注意木紋方向（看「纖維傾斜」），逆紋刨會撕裂。"
+	return "按住左鍵沿木料長度方向拖曳 = 一刨。Ctrl+滾輪：吃刀深度。R：切換鉋台長度。\n注意木紋方向（看「纖維傾斜」），逆紋刨會撕裂。"
 
 func status() -> String:
 	var p: WoodPiece = ws.active_piece()
@@ -93,7 +93,7 @@ func motion(_rel: Vector2, hit: Dictionary) -> void:
 		for k in WoodPiece.PROFILE_N:
 			if absf(p.x_of(k) - xi) <= half_sole:
 				ref = maxf(ref, _snapshot[k])
-		var target := ref - depth
+		var target := ref - depth * WoodPhysics.speed_half()
 		if p.profile[i] > target:
 			var removed := p.profile[i] - target
 			p.profile[i] = target
@@ -101,7 +101,7 @@ func motion(_rel: Vector2, hit: Dictionary) -> void:
 			seg_removed += removed
 			seg_n += 1
 			p.tearout[i] = maxf(0.0, p.tearout[i] - removed)
-			var chance := WoodPhysics.tearout_chance(p.sp()["tearout"], p.grain_runout, removed, sharpness, uphill)
+			var chance := WoodPhysics.tearout_chance(p.sp()["tearout"], p.grain_runout, removed / WoodPhysics.speed_half(), sharpness, uphill)
 			if randf() < chance:
 				p.tearout[i] = maxf(p.tearout[i], removed * randf_range(1.0, 3.0) + 0.05)
 				_stroke_tear += 1

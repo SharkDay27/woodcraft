@@ -39,6 +39,7 @@ var trend_species: String = ""
 var bench: Dictionary = {}      ## 工作台上的進行中工作（存檔用）
 var game_minutes: float = 8.0 * 60.0
 var _uid: int = 0
+var work_speed: float = 3.0
 
 # ================================================================ 開新遊戲 / 存讀檔
 func new_game() -> void:
@@ -55,6 +56,7 @@ func new_game() -> void:
 	ledger.clear()
 	bench = {}
 	game_minutes = 8.0 * 60.0
+	WoodPhysics.work_speed = work_speed
 	for sid in BASE_PRICE.keys():
 		market[sid] = randf_range(0.9, 1.1)
 		market_prev[sid] = market[sid]
@@ -79,7 +81,7 @@ func save_game() -> void:
 	var d := {"money": money, "day": day, "reputation": reputation, "review_count": review_count, "followers": followers,
 		"inventory": inventory, "products": products, "orders": orders, "reviews": reviews, "pending_reviews": pending_reviews,
 		"ledger": ledger, "market": market, "market_prev": market_prev, "trend": trend_species, "bench": bench,
-		"game_minutes": game_minutes, "uid": _uid}
+		"game_minutes": game_minutes, "uid": _uid, "work_speed": work_speed}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(d))
@@ -108,6 +110,8 @@ func load_game() -> bool:
 	bench = d["bench"]
 	game_minutes = float(d["game_minutes"])
 	_uid = int(d["uid"])
+	work_speed = float(d.get("work_speed", 3.0))
+	WoodPhysics.work_speed = work_speed
 	changed.emit()
 	return true
 

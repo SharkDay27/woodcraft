@@ -12,6 +12,7 @@ const MODES := ["鑿榫眼（木槌）", "修削榫頭頰面"]
 var width_index: int = 1
 var force: float = 0.0
 var _wobble: float = 0.0
+var last_strike_ms: int = -100000   ## 給木槌動畫用
 
 func _init(p_ws) -> void:
 	super(p_ws)
@@ -23,7 +24,7 @@ func chisel_width() -> float:
 	return WIDTHS[width_index]
 
 func help() -> String:
-	return "R：切換模式。滾輪：換鑿子寬度。按住左鍵蓄力、放開敲擊（蓄力時保持滑鼠穩定）。\nE：撬出木屑。K（在劃線工具中）：劃線規對準鑿子寬度。"
+	return "R：切換模式。Ctrl+滾輪：換鑿子寬度。按住左鍵蓄力、放開敲擊（蓄力時保持滑鼠穩定）。\nE：撬出木屑。K（在劃線工具中）：劃線規對準鑿子寬度。"
 
 func status() -> String:
 	var s := "模式：[b]%s[/b]　鑿寬 [b]%.0f mm[/b]　%s" % [MODES[mode], chisel_width(), sharp_text()]
@@ -71,6 +72,7 @@ func release(hit: Dictionary) -> void:
 	var p: WoodPiece = ws.active_piece()
 	if p == null:
 		return
+	last_strike_ms = Time.get_ticks_msec()
 	if mode == 0:
 		_strike(p, hit)
 	else:

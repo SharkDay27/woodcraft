@@ -20,6 +20,8 @@ var _looking := false
 var _yaw := 0.0
 var _pitch := -0.88
 var _started := false
+var _target_fov := 60.0
+var tool_models: ToolModels
 var sfx: SoundEngine
 var fx: WorkshopFx
 var day_night: DayNight
@@ -85,6 +87,9 @@ func _build_world() -> void:
 	add_child(fx)
 	sfx = SoundEngine.new()
 	add_child(sfx)
+	tool_models = ToolModels.new()
+	tool_models.ws = self
+	add_child(tool_models)
 	# 工作台：厚實的檯面 + 桌腳 + 橫撐
 	_box(Vector3(1.8, 0.08, 0.65), Vector3(0, BENCH_TOP - 0.04, -0.05), Color(0.36, 0.26, 0.16))
 	for x in [-0.82, 0.82]:
@@ -482,12 +487,14 @@ func _unhandled_input(event: InputEvent) -> void:
 					current_tool().press(last_hit)
 				else:
 					current_tool().release(last_hit)
-			MOUSE_BUTTON_WHEEL_UP:
-				if mb.pressed and _started:
-					current_tool().wheel(1, mb.shift_pressed)
-			MOUSE_BUTTON_WHEEL_DOWN:
-				if mb.pressed and _started:
-					current_tool().wheel(-1, mb.shift_pressed)
+			MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
+				if not mb.pressed or not _started or hud.menu_open():
+					return
+				var dir := 1 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else -1
+				if mb.ctrl_pressed or mb.alt_pressed:
+					current_tool().wheel(dir, mb.alt_pressed)   # Ctrl：主要數值；Alt：次要數值
+				else:
+					_target_fov = clampf(_target_fov - dir * 4.0, 18.0, 75.0)   # 放大縮小畫面
 	elif event is InputEventMouseMotion:
 		var mm := event as InputEventMouseMotion
 		if _looking:
@@ -496,6 +503,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_apply_cam()
 		elif _started:
 			_update_hit()
+			if current_tool().pressed:
+				current_tool().anim += mm.relative
 			current_tool().motion(mm.relative, last_hit)
 	elif event is InputEventKey:
 		var k := event as InputEventKey
@@ -545,6 +554,11 @@ func _key(k: InputEventKey) -> void:
 				say("工作中的木料：%s" % active_piece().label_name)
 		KEY_M:
 			measure()
+		KEY_F2:
+			var i := WoodPhysics.WORK_SPEEDS.find(WoodPhysics.work_speed)
+			WoodPhysics.work_speed = WoodPhysics.WORK_SPEEDS[(i + 1) % WoodPhysics.WORK_SPEEDS.size()]
+			Game.work_speed = WoodPhysics.work_speed
+			say("加工速度 ×%s%s" % [str(WoodPhysics.work_speed).trim_suffix(".0"), "（真實速度）" if WoodPhysics.work_speed == 1.0 else ""])
 		KEY_B:
 			var n := fx.sweep()
 			if n > 0:
@@ -576,6 +590,9 @@ func _process(delta: float) -> void:
 	if _started and not hud.menu_open():
 		advance_time(delta * TIME_SCALE)
 	day_night.update_time(game_minutes)
+	cam.fov = lerpf(cam.fov, _target_fov, clampf(delta * 12.0, 0.0, 1.0))
+	if _started and not hud.menu_open():
+		_update_hit()
 	_move_cam(delta)
 	_layout()
 	if _started:
@@ -625,7 +642,12 @@ func _layout() -> void:
 		var insert := minf(float(rail.tenon["length"]), float(leg.mortise["depth"]))
 		rail.position = top + Vector3.UP * (rail.length * 0.5 - insert) * 0.001
 
+var debug_hit := {}   ## 測試用：固定游標命中點
+
 func _update_hit() -> void:
+	if not debug_hit.is_empty():
+		last_hit = debug_hit
+		return
 	last_hit = {"on_piece": false, "local": Vector3.ZERO, "top": Vector3.ZERO}
 	var p := active_piece()
 	if p == null or cam == null:
@@ -666,7 +688,7 @@ func _update_hud() -> void:
 	if hud == null:
 		return
 	var s := day_night.clock_icon(game_minutes) + " [b]%s[/b]　[color=#e8c27a]NT$ %s[/color]" % [clock_text(game_minutes), ComputerUI._fmt(Game.money)]
-	s += "\n工坊 25°C / RH 65%%（平衡含水率 %.1f%%）" % emc
+	s += "\n工坊 25°C / RH 65%%（平衡含水率 %.1f%%）　加工速度 ×%s（F2）" % [emc, str(WoodPhysics.work_speed).trim_suffix(".0")]
 	var n_orders := 0
 	for o in Game.orders:
 		if o["status"] == "new":

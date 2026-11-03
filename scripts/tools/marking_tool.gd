@@ -19,7 +19,7 @@ func _init(p_ws) -> void:
 	display = "劃線工具"
 
 func help() -> String:
-	return "R：切換劃線模式。左鍵：在木料上劃線。\n滾輪：調整劃線規（榫眼寬／榫頭厚），Shift+滾輪：榫眼長／榫頭長。K：劃線規對準目前鑿子寬度。"
+	return "R：切換劃線模式。左鍵：在木料上劃線。\nCtrl+滾輪：調整劃線規（榫眼寬／榫頭厚），Alt+滾輪：榫眼長／榫頭長。K：劃線規對準目前鑿子寬度。"
 
 func status() -> String:
 	var s := "模式：[b]%s[/b]\n劃線規 %.1f mm" % [MODES[mode], gauge]

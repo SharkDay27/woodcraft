@@ -16,7 +16,7 @@ func grit() -> int:
 	return WoodPhysics.GRITS[grit_index]
 
 func help() -> String:
-	return "按住左鍵左右來回砂磨（順纖維方向）。滾輪：換砂紙號數。\n依序換號，不要跳號；避免上下（橫紋）砂磨。"
+	return "按住左鍵左右來回砂磨（順纖維方向）。Ctrl+滾輪：換砂紙號數。\n依序換號，不要跳號；避免上下（橫紋）砂磨。"
 
 func status() -> String:
 	var s := "砂紙 [b]#%d[/b]" % grit()
@@ -68,7 +68,7 @@ func motion(rel: Vector2, hit: Dictionary) -> void:
 	ws.fx.sand_dust(p.to_global(Vector3(hp.x, p.mean_thickness() * 0.5, hp.z) * 0.001), p.sp()["early"])
 	var level := WoodPhysics.grit_scratch(grit())
 	var power := WoodPhysics.grit_power(grit())
-	var work := total * 0.0009 / sqrt(maxf(p.hardness(), 0.2))
+	var work := total * 0.0009 / sqrt(maxf(p.hardness(), 0.2)) * WoodPhysics.speed_full()
 	var removal := work * power
 	if p.scratch > level:
 		p.scratch = maxf(level, p.scratch - removal)

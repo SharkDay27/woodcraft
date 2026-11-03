@@ -2,7 +2,7 @@ class_name GlueTool
 extends WorkTool
 ## 木工白膠 (PVA) 與 F 夾。
 ##  模式 0 上膠：按住左鍵擠膠（越久越多）。上膠後開放時間 10 分鐘內要組裝 (F)。
-##  模式 1 夾具：滾輪調整夾持壓力，左鍵 夾上／拆下。至少夾 45 分鐘 (T 等待)。
+##  模式 1 夾具：Ctrl+滾輪調整夾持壓力，左鍵 夾上／拆下。至少夾 45 分鐘 (T 等待)。
 
 const MODES := ["上膠（白膠 PVA）", "F 夾"]
 
@@ -15,7 +15,7 @@ func _init(p_ws) -> void:
 	display = "膠與夾具"
 
 func help() -> String:
-	return "R：切換 上膠／夾具。上膠：按住左鍵擠膠，然後按 F 組裝。\n夾具：滾輪調壓力，左鍵夾上／拆下。T：等待 10 分鐘（Shift+T：1 小時）。"
+	return "R：切換 上膠／夾具。上膠：按住左鍵擠膠，然後按 F 組裝。\n夾具：Ctrl+滾輪調壓力，左鍵夾上／拆下。T：等待 10 分鐘（Shift+T：1 小時）。"
 
 func status() -> String:
 	var a: Dictionary = ws.assembly

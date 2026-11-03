@@ -32,6 +32,9 @@ var _lp2 := 0.0
 var _imp := 0.0
 var _mod_ph := 0.0
 var _tone_ph := 0.0
+var _lp_b := 0.0
+var _tex := 0.5
+var _master := 0.0
 
 func _ready() -> void:
 	var gen := AudioStreamGenerator.new()
@@ -72,24 +75,34 @@ func _process(delta: float) -> void:
 		_pb.push_frame(Vector2(s, s))
 
 func _next_sample() -> float:
-	_gain += (_target - _gain) * 0.003
+	_gain += (_target - _gain) * 0.002
 	if _gain <= 0.0003:
-		return 0.0
+		_master *= 0.95
+		return _master
+	# 激發源：白雜訊 + 劈啪脈衝（脈衝也要經過濾波，才不會變成刺耳的爆音）
 	var w := randf() * 2.0 - 1.0
-	_lp += _cutoff * (w - _lp)
-	_lp2 += 0.03 * (_lp - _lp2)
-	var s := _lp - _lp2
 	if _crackle > 0.0 and randf() < _crackle / SR:
-		_imp = randf_range(0.6, 1.2)
-	s += _imp * (randf() * 2.0 - 1.0)
-	_imp *= 0.94
+		_imp = randf_range(0.5, 1.0)
+	w += _imp * (randf() * 2.0 - 1.0) * 1.6
+	_imp *= 0.97
+	# 兩階低通（比一階陡，削掉刺耳的高頻）+ 高通去掉低頻隆隆聲
+	_lp += _cutoff * (w - _lp)
+	_lp_b += _cutoff * (_lp - _lp_b)
+	_lp2 += 0.02 * (_lp_b - _lp2)
+	var s := (_lp_b - _lp2) / sqrt(_cutoff) * 0.55
+	# 纖維感：緩慢隨機的振幅起伏，讓聲音是「唰——」而不是靜態嘶聲
+	_tex += 0.003 * (randf() - _tex)
+	s *= 0.55 + 0.9 * _tex
 	if _mod_depth > 0.0:
 		_mod_ph = fmod(_mod_ph + _mod_freq / SR, 1.0)
 		s *= 1.0 - _mod_depth * (0.5 + 0.5 * sin(TAU * _mod_ph))
 	if _tone_mix > 0.0:
 		_tone_ph = fmod(_tone_ph + _tone_freq / SR, 1.0)
-		s += sin(TAU * _tone_ph) * _tone_mix * 0.25
-	return clampf(s * _gain * 1.1, -1.0, 1.0)
+		s += sin(TAU * _tone_ph) * _tone_mix * 0.2
+	# 柔和飽和（不會硬削波）+ 總低通約 4 kHz
+	s = tanh(s * _gain * 1.6) * 0.75
+	_master += 0.68 * (s - _master)
+	return _master
 
 ## 離線算出連續聲（測試、試聽用）。strokes：[{"dur","call"}]，call 是設定 drive 的 Callable
 func render_offline(segments: Array) -> AudioStreamWAV:
@@ -109,23 +122,23 @@ func synth_stream(name: String, params: Dictionary = {}) -> AudioStreamWAV:
 	return _synth(name, params)
 
 # ---- 各工具的連續聲配方
+## 鋒利：明亮順滑的「唰——」；鈍刀：悶、粗、帶撕裂的劈啪
 func plane(intensity: float, sharpness: float, tear: float) -> void:
-	drive(intensity, {"gain": 0.8, "cutoff": lerpf(0.18, 0.75, sharpness), "crackle": tear * 120.0 + (1.0 - sharpness) * 25.0,
-		"tone_freq": 1400.0 + sharpness * 900.0, "tone_mix": 0.05})
+	drive(intensity, {"gain": 0.6, "cutoff": lerpf(0.16, 0.36, sharpness), "crackle": tear * 50.0 + (1.0 - sharpness) * 12.0})
 
 func saw(intensity: float, speed_px: float, rip_teeth: bool, eff: float, cutting: bool) -> void:
 	var pitch_mm := 3.0 if rip_teeth else 1.5
 	var tooth_hz := clampf(speed_px * 60.0 / pitch_mm * 0.6, 60.0, 1600.0)
-	drive(intensity, {"gain": 0.75 if cutting else 0.25, "cutoff": 0.45 if rip_teeth else 0.6,
-		"crackle": (1.0 - eff) * 160.0 + 10.0, "mod_freq": tooth_hz, "mod_depth": 0.75 if cutting else 0.3,
-		"tone_freq": 2600.0, "tone_mix": 0.04})
+	drive(intensity, {"gain": 0.65 if cutting else 0.22, "cutoff": 0.30 if rip_teeth else 0.38,
+		"crackle": (1.0 - eff) * 80.0 + 5.0, "mod_freq": tooth_hz, "mod_depth": 0.7 if cutting else 0.3,
+		"tone_freq": 2200.0, "tone_mix": 0.03})
 
 func sand(intensity: float, grit: int) -> void:
 	var coarse := clampf((320.0 - grit) / 240.0, 0.0, 1.0)
-	drive(intensity, {"gain": 0.45, "cutoff": lerpf(0.75, 0.25, coarse), "crackle": coarse * 250.0})
+	drive(intensity, {"gain": 0.4, "cutoff": lerpf(0.42, 0.2, coarse), "crackle": coarse * 120.0})
 
 func stone(intensity: float, grit: int) -> void:
-	drive(intensity, {"gain": 0.4, "cutoff": 0.12 if grit < 3000 else 0.3, "crackle": 6.0 if grit < 3000 else 0.0,
+	drive(intensity, {"gain": 0.4, "cutoff": 0.10 if grit < 3000 else 0.22, "crackle": 4.0 if grit < 3000 else 0.0,
 		"mod_freq": 4.0, "mod_depth": 0.3})
 
 # ================================================================ 單發聲

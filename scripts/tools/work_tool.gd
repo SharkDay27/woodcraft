@@ -10,6 +10,7 @@ var sharpness: float = 1.0
 var sharpenable: bool = false
 var mode: int = 0
 var pressed: bool = false
+var anim := Vector2.ZERO   ## 按住時累積的滑鼠移動，給 3D 工具模型做動畫
 
 func _init(p_ws) -> void:
 	ws = p_ws

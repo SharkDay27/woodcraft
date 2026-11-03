@@ -20,7 +20,7 @@ func _init(p_ws) -> void:
 	sharpness = 1.0
 
 func help() -> String:
-	return "按住左鍵，滑鼠往下拉 = 拉鋸（切削），往上推 = 回程。左右移動可修正偏移。\nR：翻面（縱切齒／橫切齒）。滾輪：選擇要鋸的線。要訣：鋸在線的廢料側。"
+	return "按住左鍵，滑鼠往下拉 = 拉鋸（切削），往上推 = 回程。左右移動可修正偏移。\nR：翻面（縱切齒／橫切齒）。Ctrl+滾輪：選擇要鋸的線。要訣：鋸在線的廢料側。"
 
 func _jobs() -> Array:
 	var p: WoodPiece = ws.active_piece()
